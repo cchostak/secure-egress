@@ -34,6 +34,7 @@ Key properties:
 * `gcloud` CLI authenticated with sufficient IAM permissions
 * Terraform will be executed from GitHub Actions. Using Cloud shell.
 * IAM Service Account Credentials API enabled (`iamcredentials.googleapis.com`)
+* Billing account enabled and linked to the project (required for GCS + Compute)
 
 ---
 
@@ -203,12 +204,25 @@ Create a GCS bucket once:
 gsutil mb -l europe-west1 gs://egress-forge-tf-state
 ```
 
+Note: bucket creation requires an active billing account on the project. If you see:\n
+`AccessDeniedException: 403 The billing account for the owning project is disabled`,\n
+enable billing on the project and retry.
+
 Grant the CI service account access to the state bucket (bucket-level, least privilege):
 
 ```bash
 gsutil iam ch \
   serviceAccount:github-terraform@networking-486816.iam.gserviceaccount.com:objectAdmin \
   gs://egress-forge-tf-state
+```
+
+Bucket privacy:
+* Buckets are **private by default**. No public access is granted unless you explicitly add it.
+* Recommended hardening:
+
+```bash
+gsutil uniformbucketlevelaccess set on gs://egress-forge-tf-state
+gsutil pap set enforced gs://egress-forge-tf-state
 ```
 
 In `terraform/envs/dev/main.tf`:
@@ -252,6 +266,7 @@ gcloud iam workload-identity-pools providers describe github \
 * Missing `roles/iam.workloadIdentityUser` (or `roles/iam.serviceAccountTokenCreator`) on the service account
 * Missing bucket IAM on the Terraform state bucket
 * IAM Service Account Credentials API is disabled
+* Billing account not enabled on the project (bucket creation fails)
 
 ---
 
