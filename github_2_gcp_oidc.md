@@ -33,10 +33,17 @@ Key properties:
 * GitHub repository: we are using `cchostak/secure-egress`
 * `gcloud` CLI authenticated with sufficient IAM permissions
 * Terraform will be executed from GitHub Actions. Using Cloud shell.
+* IAM Service Account Credentials API enabled (`iamcredentials.googleapis.com`)
 
 ---
 
 ## Step 1: Create a GCP Service Account for CI
+
+Enable required API (one-time):
+
+```bash
+gcloud services enable iamcredentials.googleapis.com --project networking-486816
+```
 
 Create the service account that GitHub Actions will impersonate:
 
@@ -229,4 +236,3 @@ This setup provides:
 * ✅ Short-lived credentials
 * ✅ Strong auditability
 * ✅ CI/CD ready for production use
-
