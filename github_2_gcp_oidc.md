@@ -37,6 +37,7 @@ Key properties:
   * IAM Service Account Credentials API (`iamcredentials.googleapis.com`)
   * Identity and Access Management API (`iam.googleapis.com`)
   * Compute Engine API (`compute.googleapis.com`)
+  * Cloud Resource Manager API (`cloudresourcemanager.googleapis.com`)
 * Billing account enabled and linked to the project (required for GCS + Compute)
 
 ---
@@ -50,6 +51,7 @@ gcloud services enable \
   iamcredentials.googleapis.com \
   iam.googleapis.com \
   compute.googleapis.com \
+  cloudresourcemanager.googleapis.com \
   --project networking-486816
 ```
 
@@ -281,6 +283,7 @@ gcloud iam workload-identity-pools providers describe github \
 * IAM Service Account Credentials API is disabled
 * IAM API is disabled (service account create fails)
 * Compute Engine API is disabled (VPC/instance create fails)
+* Cloud Resource Manager API is disabled (project IAM bindings fail)
 * Billing account not enabled on the project (bucket creation fails)
 * Wrong principal format in SA policy (must use `/attribute.repository/OWNER/REPO`, not `=`)
 * `storage.objects.get` denied when reading state (missing `objectAdmin`/`objectViewer` on the state bucket)
