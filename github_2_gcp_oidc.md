@@ -75,6 +75,16 @@ gcloud projects add-iam-policy-binding networking-486816 \
 > * `roles/compute.admin`
 > * `roles/iam.serviceAccountUser`
 > * `roles/storage.admin` (for Terraform state)
+> * `roles/resourcemanager.projectIamAdmin` (only if Terraform manages project IAM bindings)
+
+If Terraform manages project-level IAM (e.g., `google_project_iam_member` resources),
+the CI service account must be able to update IAM policies:
+
+```bash
+gcloud projects add-iam-policy-binding networking-486816 \
+  --member="serviceAccount:github-terraform@networking-486816.iam.gserviceaccount.com" \
+  --role="roles/resourcemanager.projectIamAdmin"
+```
 
 ---
 
@@ -287,6 +297,8 @@ gcloud iam workload-identity-pools providers describe github \
 * Billing account not enabled on the project (bucket creation fails)
 * Wrong principal format in SA policy (must use `/attribute.repository/OWNER/REPO`, not `=`)
 * `storage.objects.get` denied when reading state (missing `objectAdmin`/`objectViewer` on the state bucket)
+* `Policy update access denied` when creating `google_project_iam_member` resources:
+  grant `roles/resourcemanager.projectIamAdmin` to the CI service account or manage those IAM bindings out-of-band.
 
 ---
 
