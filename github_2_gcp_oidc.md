@@ -129,6 +129,23 @@ Result:
 * Only `cchostak/secure-egress` can impersonate this service account
 * Forks and other repos are denied by default
 
+### 4.3 If you see `iam.serviceAccounts.getAccessToken` errors
+
+Some org policies require explicit token creation permission. If `terraform init` fails with:
+
+```
+Permission 'iam.serviceAccounts.getAccessToken' denied
+```
+
+grant token creator to the same principal:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding \
+  github-terraform@networking-486816.iam.gserviceaccount.com \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --member="principalSet://iam.googleapis.com/projects/28661575811/locations/global/workloadIdentityPools/github-pool/attribute.repository=cchostak/secure-egress"
+```
+
 ---
 
 ## Step 5: Configure GitHub Actions Workflow
@@ -186,6 +203,14 @@ Create a GCS bucket once:
 gsutil mb -l europe-west1 gs://egress-forge-tf-state
 ```
 
+Grant the CI service account access to the state bucket (bucket-level, least privilege):
+
+```bash
+gsutil iam ch \
+  serviceAccount:github-terraform@networking-486816.iam.gserviceaccount.com:objectAdmin \
+  gs://egress-forge-tf-state
+```
+
 In `terraform/envs/dev/main.tf`:
 
 ```hcl
@@ -224,6 +249,9 @@ gcloud iam workload-identity-pools providers describe github \
 * Using project ID instead of project **number**
 * Missing `id-token: write` permission in GitHub Actions
 * Attempting to run from a fork
+* Missing `roles/iam.workloadIdentityUser` (or `roles/iam.serviceAccountTokenCreator`) on the service account
+* Missing bucket IAM on the Terraform state bucket
+* IAM Service Account Credentials API is disabled
 
 ---
 
