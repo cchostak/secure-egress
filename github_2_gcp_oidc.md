@@ -33,17 +33,24 @@ Key properties:
 * GitHub repository: we are using `cchostak/secure-egress`
 * `gcloud` CLI authenticated with sufficient IAM permissions
 * Terraform will be executed from GitHub Actions. Using Cloud shell.
-* IAM Service Account Credentials API enabled (`iamcredentials.googleapis.com`)
+* APIs enabled in the project:
+  * IAM Service Account Credentials API (`iamcredentials.googleapis.com`)
+  * Identity and Access Management API (`iam.googleapis.com`)
+  * Compute Engine API (`compute.googleapis.com`)
 * Billing account enabled and linked to the project (required for GCS + Compute)
 
 ---
 
 ## Step 1: Create a GCP Service Account for CI
 
-Enable required API (one-time):
+Enable required APIs (one-time):
 
 ```bash
-gcloud services enable iamcredentials.googleapis.com --project networking-486816
+gcloud services enable \
+  iamcredentials.googleapis.com \
+  iam.googleapis.com \
+  compute.googleapis.com \
+  --project networking-486816
 ```
 
 Create the service account that GitHub Actions will impersonate:
@@ -122,7 +129,7 @@ Example output:
 gcloud iam service-accounts add-iam-policy-binding \
   github-terraform@networking-486816.iam.gserviceaccount.com \
   --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/projects/28661575811/locations/global/workloadIdentityPools/github-pool/attribute.repository=cchostak/secure-egress"
+  --member="principalSet://iam.googleapis.com/projects/28661575811/locations/global/workloadIdentityPools/github-pool/attribute.repository/cchostak/secure-egress"
 ```
 
 Result:
@@ -144,7 +151,7 @@ grant token creator to the same principal:
 gcloud iam service-accounts add-iam-policy-binding \
   github-terraform@networking-486816.iam.gserviceaccount.com \
   --role="roles/iam.serviceAccountTokenCreator" \
-  --member="principalSet://iam.googleapis.com/projects/28661575811/locations/global/workloadIdentityPools/github-pool/attribute.repository=cchostak/secure-egress"
+  --member="principalSet://iam.googleapis.com/projects/28661575811/locations/global/workloadIdentityPools/github-pool/attribute.repository/cchostak/secure-egress"
 ```
 
 ---
@@ -201,11 +208,13 @@ Notes:
 Create a GCS bucket once:
 
 ```bash
-gsutil mb -l europe-west1 gs://egress-forge-tf-state
+gsutil mb -p networking-486816 -l us-central1 gs://egress-forge-tf-state
 ```
 
-Note: bucket creation requires an active billing account on the project. If you see:\n
-`AccessDeniedException: 403 The billing account for the owning project is disabled`,\n
+Note: bucket creation requires an active billing account on the project. If you see:
+
+`AccessDeniedException: 403 The billing account for the owning project is disabled`,
+
 enable billing on the project and retry.
 
 Grant the CI service account access to the state bucket (bucket-level, least privilege):
@@ -215,6 +224,10 @@ gsutil iam ch \
   serviceAccount:github-terraform@networking-486816.iam.gserviceaccount.com:objectAdmin \
   gs://egress-forge-tf-state
 ```
+
+If `terraform init` fails with:
+
+`storage.objects.get` denied on the state object, the bucket IAM above is missing or not applied to the correct bucket.
 
 Bucket privacy:
 * Buckets are **private by default**. No public access is granted unless you explicitly add it.
@@ -266,7 +279,11 @@ gcloud iam workload-identity-pools providers describe github \
 * Missing `roles/iam.workloadIdentityUser` (or `roles/iam.serviceAccountTokenCreator`) on the service account
 * Missing bucket IAM on the Terraform state bucket
 * IAM Service Account Credentials API is disabled
+* IAM API is disabled (service account create fails)
+* Compute Engine API is disabled (VPC/instance create fails)
 * Billing account not enabled on the project (bucket creation fails)
+* Wrong principal format in SA policy (must use `/attribute.repository/OWNER/REPO`, not `=`)
+* `storage.objects.get` denied when reading state (missing `objectAdmin`/`objectViewer` on the state bucket)
 
 ---
 
