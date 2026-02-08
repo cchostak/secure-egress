@@ -19,10 +19,6 @@ jobs:
   destroy:
     runs-on: ubuntu-latest
     environment: production
-    defaults:
-      run:
-        working-directory: terraform/envs/${{ inputs.env }}
-
     steps:
       - name: Verify confirmation
         run: |
@@ -46,7 +42,9 @@ jobs:
           service_account: "github-terraform@networking-486816.iam.gserviceaccount.com"
 
       - name: Terraform init
+        working-directory: terraform/envs/${{ inputs.env }}
         run: terraform init -input=false -backend-config="bucket=egress-forge-tf-state" -backend-config="prefix=${{ inputs.env }}"
 
       - name: Terraform destroy
+        working-directory: terraform/envs/${{ inputs.env }}
         run: terraform destroy -input=false -auto-approve
