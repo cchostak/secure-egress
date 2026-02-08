@@ -1,0 +1,52 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type DESTROY to confirm"
+        required: true
+      env:
+        description: "Terraform environment folder"
+        required: true
+        default: "dev"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: terraform/envs/${{ inputs.env }}
+
+    steps:
+      - name: Verify confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "DESTROY" ]; then
+            echo "Confirmation failed. Type DESTROY to proceed."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: "projects/28661575811/locations/global/workloadIdentityPools/github-pool/providers/github"
+          service_account: "github-terraform@networking-486816.iam.gserviceaccount.com"
+
+      - name: Terraform init
+        run: terraform init -input=false -backend-config="bucket=egress-forge-tf-state" -backend-config="prefix=${{ inputs.env }}"
+
+      - name: Terraform destroy
+        run: terraform destroy -input=false -auto-approve

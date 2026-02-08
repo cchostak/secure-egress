@@ -73,12 +73,21 @@ Workflows:
 - `terraform-plan.yml` runs `fmt`, `validate`, and `plan` on pull requests
 - `terraform-apply.yml` runs on `main` with environment protection for manual approval
 
-Required GitHub secrets:
-- `GCP_WORKLOAD_IDENTITY_PROVIDER` — Workload Identity Provider resource name
-- `GCP_SERVICE_ACCOUNT` — Service account email for GitHub Actions
-- `TF_STATE_BUCKET` — GCS bucket name for Terraform state
+This repo uses Workload Identity Federation (OIDC) with fixed provider and service account in workflows, so **no GitHub secrets are required** by default. If you want to parameterize these values, introduce secrets and update the workflows accordingly.
 
 Recommended: protect the `production` environment in GitHub with required reviewers to enforce manual approvals.
+
+## Destroy Workflow
+
+To control costs for PoC, use the **manual** destroy workflow:
+
+1. GitHub Actions → `Terraform Destroy`
+2. Enter `DESTROY` in the confirmation prompt
+3. Choose `env` (defaults to `dev`)
+
+Notes:
+- This destroys **only** resources managed by Terraform.
+- It does **not** delete the GCP project or the state bucket.
 
 ## Operations
 
@@ -86,6 +95,10 @@ Recommended: protect the `production` environment in GitHub with required review
 - Squid seed lists refresh every 30 minutes via `systemd` timer and reload Squid.
 - ipset rules are saved via `netfilter-persistent`.
 - Suricata rules are updated on boot with `suricata-update` (best-effort).
+
+## Validation Guide
+
+See `docs/validation.md` for step-by-step testing and validation commands.
 
 ## Security Notes
 

@@ -252,7 +252,10 @@ import yaml
 
 path = "/etc/suricata/suricata.yaml"
 with open(path, "r", encoding="utf-8") as f:
-    cfg = yaml.safe_load(f)
+    cfg = yaml.safe_load(f) or {}
+
+# Disable AF_PACKET capture (default config targets eth0 and breaks in GCP).
+cfg["af-packet"] = []
 
 nfq = cfg.get("nfq") or {}
 nfq["mode"] = "repeat"
@@ -281,6 +284,7 @@ if "local.rules" not in rules:
 cfg["rule-files"] = rules
 
 with open(path, "w", encoding="utf-8") as f:
+    f.write("%YAML 1.1\n---\n")
     yaml.safe_dump(cfg, f, sort_keys=False)
 PY
 
